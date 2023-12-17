@@ -3,7 +3,6 @@
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
-use Monolog\Processor\PsrLogMessageProcessor;
 
 return [
 
@@ -31,10 +30,7 @@ return [
     |
     */
 
-    'deprecations' => [
-        'channel' => env('LOG_DEPRECATIONS_CHANNEL', 'null'),
-        'trace' => false,
-    ],
+    'deprecations' => env('LOG_DEPRECATIONS_CHANNEL', 'null'),
 
     /*
     |--------------------------------------------------------------------------
@@ -53,78 +49,86 @@ return [
 
     'channels' => [
         'stack' => [
-            'driver' => 'stack',
-            'channels' => ['single'],
+            'driver'            => 'stack',
+            'channels'          => ['single', 'error-slack', 'sentry'],
             'ignore_exceptions' => false,
         ],
 
         'single' => [
             'driver' => 'single',
-            'path' => storage_path('logs/laravel.log'),
-            'level' => env('LOG_LEVEL', 'debug'),
-            'replace_placeholders' => true,
+            'path'   => storage_path('logs/laravel.log'),
+            'level'  => env('LOG_LEVEL', 'debug'),
         ],
 
         'daily' => [
             'driver' => 'daily',
-            'path' => storage_path('logs/laravel.log'),
-            'level' => env('LOG_LEVEL', 'debug'),
-            'days' => 14,
-            'replace_placeholders' => true,
+            'path'   => storage_path('logs/laravel.log'),
+            'level'  => env('LOG_LEVEL', 'debug'),
+            'days'   => 14,
         ],
 
         'slack' => [
-            'driver' => 'slack',
-            'url' => env('LOG_SLACK_WEBHOOK_URL'),
+            'driver'   => 'slack',
+            'url'      => env('LOG_SLACK_WEBHOOK_URL'),
             'username' => 'Laravel Log',
-            'emoji' => ':boom:',
-            'level' => env('LOG_LEVEL', 'critical'),
-            'replace_placeholders' => true,
+            'emoji'    => ':boom:',
+            'level'    => env('LOG_LEVEL', 'critical'),
+        ],
+
+        'error-slack' => [
+            'driver'   => 'slack',
+            'url'      => env('SLACK_ERROR_WEBHOOK'),
+            'username' => env('APP_NAME'),
+            'emoji'    => ':boom:',
+            'level'    => env('ERROR_LOG_LEVEL', 'warning'),
         ],
 
         'papertrail' => [
-            'driver' => 'monolog',
-            'level' => env('LOG_LEVEL', 'debug'),
-            'handler' => env('LOG_PAPERTRAIL_HANDLER', SyslogUdpHandler::class),
+            'driver'       => 'monolog',
+            'level'        => env('LOG_LEVEL', 'debug'),
+            'handler'      => env('LOG_PAPERTRAIL_HANDLER', SyslogUdpHandler::class),
             'handler_with' => [
-                'host' => env('PAPERTRAIL_URL'),
-                'port' => env('PAPERTRAIL_PORT'),
+                'host'             => env('PAPERTRAIL_URL'),
+                'port'             => env('PAPERTRAIL_PORT'),
                 'connectionString' => 'tls://'.env('PAPERTRAIL_URL').':'.env('PAPERTRAIL_PORT'),
             ],
-            'processors' => [PsrLogMessageProcessor::class],
         ],
 
         'stderr' => [
-            'driver' => 'monolog',
-            'level' => env('LOG_LEVEL', 'debug'),
-            'handler' => StreamHandler::class,
+            'driver'    => 'monolog',
+            'level'     => env('LOG_LEVEL', 'debug'),
+            'handler'   => StreamHandler::class,
             'formatter' => env('LOG_STDERR_FORMATTER'),
-            'with' => [
+            'with'      => [
                 'stream' => 'php://stderr',
             ],
-            'processors' => [PsrLogMessageProcessor::class],
         ],
 
         'syslog' => [
             'driver' => 'syslog',
-            'level' => env('LOG_LEVEL', 'debug'),
-            'facility' => LOG_USER,
-            'replace_placeholders' => true,
+            'level'  => env('LOG_LEVEL', 'debug'),
         ],
 
         'errorlog' => [
             'driver' => 'errorlog',
-            'level' => env('LOG_LEVEL', 'debug'),
-            'replace_placeholders' => true,
+            'level'  => env('LOG_LEVEL', 'debug'),
         ],
 
         'null' => [
-            'driver' => 'monolog',
+            'driver'  => 'monolog',
             'handler' => NullHandler::class,
         ],
 
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
+        ],
+
+        'sentry' => [
+            'driver' => 'sentry',
+            // The minimum logging level at which this handler will be triggered
+            // Available levels: debug, info, notice, warning, error, critical, alert, emergency
+            'level'  => env('LOG_LEVEL', 'error'),
+            'bubble' => true, // Whether the messages that are handled can bubble up the stack or not
         ],
     ],
 
